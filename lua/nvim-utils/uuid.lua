@@ -1,5 +1,8 @@
 local M = {}
 
+-- Seed random number generator for UUID generation
+math.randomseed(os.time())
+
 function M.generate()
 	local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
 	return string.gsub(template, "[xy]", function(c)
@@ -16,11 +19,6 @@ function M.insert_uuid()
 	vim.api.nvim_set_current_line(new_line)
 
 	vim.api.nvim_win_set_cursor(0, { pos[1], pos[2] + #uuid })
-end
-
-function M.replace_with_uuid()
-	local uuid = M.generate()
-	vim.api.nvim_buf_set_lines(0, vim.fn.line("'<") - 1, vim.fn.line("'>"), false, { uuid })
 end
 
 return M

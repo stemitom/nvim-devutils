@@ -1,11 +1,18 @@
 local M = {}
+local utils = require("nvim-utils.utils")
+local url_module = require("nvim-utils.url")
+
+-- Constants
+local DEFAULT_PADDING = 32
+local POPUP_MIN_PADDING = 4
+local POPUP_EXTRA_HEIGHT = 2
 
 local default_config = {
 	title = "",
 	theme = "vercel",
 	background = true,
 	dark_mode = true,
-	padding = 32,
+	padding = DEFAULT_PADDING,
 	language = "auto",
 }
 
@@ -33,12 +40,6 @@ local function get_language_from_filetype(filetype)
 	return lang_map[filetype] or "auto"
 end
 
-local function url_encode(str)
-	return string.gsub(str, "([^%w%-%.%_~])", function(c)
-		return string.format("%%%02X", string.byte(c))
-	end)
-end
-
 function M.generate_url(code, opts)
 	opts = opts or {}
 	local config = vim.tbl_deep_extend("force", default_config, opts)
@@ -49,10 +50,10 @@ function M.generate_url(code, opts)
 
 	local base_url = "https://ray.so/"
 	local params = {
-		"code=" .. url_encode(code),
-		"language=" .. url_encode(config.language),
-		"title=" .. url_encode(config.title),
-		"theme=" .. url_encode(config.theme),
+		"code=" .. url_module.encode(code),
+		"language=" .. url_module.encode(config.language),
+		"title=" .. url_module.encode(config.title),
+		"theme=" .. url_module.encode(config.theme),
 		"background=" .. tostring(config.background),
 		"darkMode=" .. tostring(config.dark_mode),
 		"padding=" .. tostring(config.padding),
@@ -64,34 +65,11 @@ end
 function M.generate_from_selection(opts)
 	opts = opts or {}
 
-	local start_pos = vim.fn.getpos("'<")
-	local end_pos = vim.fn.getpos("'>")
-	local start_line = start_pos[2]
-	local end_line = end_pos[2]
-	local start_col = start_pos[3]
-	local end_col = end_pos[3]
-
-	if start_line == 0 or end_line == 0 then
-		vim.notify("No code selected! Please select some code first.", vim.log.levels.WARN)
+	local code = utils.get_selection()
+	if not code then
+		vim.notify("No selection found. Please select text first.", vim.log.levels.WARN)
 		return
 	end
-
-	local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
-
-	if #lines == 0 then
-		vim.notify("No code selected!", vim.log.levels.WARN)
-		return
-	end
-
-	if #lines == 1 then
-		local line = lines[1]
-		lines[1] = string.sub(line, start_col, end_col)
-	else
-		lines[1] = string.sub(lines[1], start_col)
-		lines[#lines] = string.sub(lines[#lines], 1, end_col)
-	end
-
-	local code = table.concat(lines, "\n")
 
 	code = code:gsub("^%s+", ""):gsub("%s+$", "")
 
@@ -122,7 +100,7 @@ function M.generate_from_selection(opts)
 		end
 
 		if open_cmd then
-			vim.fn.system(open_cmd .. ' "' .. url .. '"')
+			vim.system({ open_cmd, url }, { detach = true })
 		else
 			vim.notify("Cannot detect system to open browser", vim.log.levels.ERROR)
 		end
@@ -132,8 +110,8 @@ function M.generate_from_selection(opts)
 end
 
 function M.show_url_popup(url)
-	local width = math.min(#url + 4, vim.o.columns - 4)
-	local height = math.ceil(#url / width) + 2
+	local width = math.min(#url + POPUP_MIN_PADDING, vim.o.columns - POPUP_MIN_PADDING)
+	local height = math.ceil(#url / width) + POPUP_EXTRA_HEIGHT
 
 	local buf = vim.api.nvim_create_buf(false, true)
 	local win = vim.api.nvim_open_win(buf, false, {
@@ -149,7 +127,7 @@ function M.show_url_popup(url)
 	})
 
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { url })
-	vim.api.nvim_buf_set_option(buf, "modifiable", false)
+	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
 
 	vim.keymap.set("n", "<Esc>", function()
 		vim.api.nvim_win_close(win, true)
