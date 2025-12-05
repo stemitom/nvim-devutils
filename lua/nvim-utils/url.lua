@@ -1,8 +1,12 @@
 local M = {}
+local utils = require("nvim-utils.utils")
 
 function M.encode(str)
 	if not str then
 		return ""
+	end
+	if type(str) ~= "string" then
+		error("url.encode expects a string, got " .. type(str))
 	end
 
 	str = string.gsub(str, "([^%w%-%.%_~])", function(c)
@@ -16,6 +20,9 @@ function M.decode(str)
 	if not str then
 		return ""
 	end
+	if type(str) ~= "string" then
+		error("url.decode expects a string, got " .. type(str))
+	end
 
 	str = string.gsub(str, "%%(%x%x)", function(hex)
 		return string.char(tonumber(hex, 16))
@@ -25,16 +32,27 @@ function M.decode(str)
 end
 
 function M.encode_selection()
-	local lines = vim.fn.getline("'<", "'>")
-	local text = table.concat(lines, "\n")
-	local encoded = M.encode(text)
+	local text = utils.get_selection()
+	if not text then
+		vim.notify("No selection found. Please select text first.", vim.log.levels.WARN)
+		return
+	end
 
-	vim.api.nvim_buf_set_lines(0, vim.fn.line("'<") - 1, vim.fn.line("'>"), false, { encoded })
+	local ok, encoded = pcall(M.encode, text)
+	if not ok then
+		vim.notify("Failed to encode: " .. encoded, vim.log.levels.ERROR)
+		return
+	end
+
+	utils.replace_selection(encoded)
 end
 
 function M.decode_selection()
-	local lines = vim.fn.getline("'<", "'>")
-	local text = table.concat(lines, "\n")
+	local text = utils.get_selection()
+	if not text then
+		vim.notify("No selection found. Please select text first.", vim.log.levels.WARN)
+		return
+	end
 
 	local ok, decoded = pcall(M.decode, text)
 	if not ok then
@@ -42,8 +60,7 @@ function M.decode_selection()
 		return
 	end
 
-	local result_lines = vim.split(decoded, "\n")
-	vim.api.nvim_buf_set_lines(0, vim.fn.line("'<") - 1, vim.fn.line("'>"), false, result_lines)
+	utils.replace_selection(decoded)
 end
 
 return M

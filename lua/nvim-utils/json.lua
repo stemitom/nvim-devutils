@@ -1,6 +1,24 @@
 local M = {}
+local utils = require("nvim-utils.utils")
+
+--- Validate JSON string
+--- @param json_str: string: JSON string to validate
+--- @return boolean: true if valid JSON, false otherwise
+local function validate_json(json_str)
+	local ok, _ = pcall(vim.fn.json_decode, json_str)
+	return ok
+end
 
 function M.format(json_str)
+	if type(json_str) ~= "string" then
+		return nil, "json.format expects a string, got " .. type(json_str)
+	end
+
+	-- Validate JSON first
+	if not validate_json(json_str) then
+		return nil, "Invalid JSON"
+	end
+
 	local indent = 0
 	local result = {}
 	local in_string = false
@@ -51,17 +69,19 @@ function M.format(json_str)
 end
 
 function M.format_selection()
-	local lines = vim.fn.getline("'<", "'>")
-	local text = table.concat(lines, "")
+	local text = utils.get_selection()
+	if not text then
+		vim.notify("No selection found. Please select text first.", vim.log.levels.WARN)
+		return
+	end
 
 	local ok, formatted = pcall(M.format, text)
-	if not ok then
+	if not ok or not formatted then
 		vim.notify("Invalid JSON input", vim.log.levels.ERROR)
 		return
 	end
 
-	local result_lines = vim.split(formatted, "\n")
-	vim.api.nvim_buf_set_lines(0, vim.fn.line("'<") - 1, vim.fn.line("'>"), false, result_lines)
+	utils.replace_selection(formatted)
 end
 
 return M

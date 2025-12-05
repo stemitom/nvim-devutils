@@ -1,18 +1,14 @@
-local pickers = require("telescope.pickers")
-local finders = require("telescope.finders")
-local conf = require("telescope.config").values
-local actions = require("telescope.actions")
-local action_state = require("telescope.actions.state")
-
-local base64 = require("nvim-utils.base64")
-local json = require("nvim-utils.json")
-local url = require("nvim-utils.url")
-local uuid = require("nvim-utils.uuid")
-local rayso = require("nvim-utils.rayso")
-
 local M = {}
 
-local utilities = {
+-- Lazy-load dependencies to avoid errors if telescope is not installed
+local function get_utilities()
+	local base64 = require("nvim-utils.base64")
+	local json = require("nvim-utils.json")
+	local url = require("nvim-utils.url")
+	local uuid = require("nvim-utils.uuid")
+	local rayso = require("nvim-utils.rayso")
+
+	return {
 	{
 		name = "Base64 Encode",
 		desc = "Encode selection as base64",
@@ -54,20 +50,24 @@ local utilities = {
 		desc = "Create code snippet with ray.so",
 		action = rayso.generate_from_selection,
 		requires_selection = true,
-	},
-}
-
-local function has_visual_selection()
-	local start_pos = vim.fn.getpos("'<")
-	local end_pos = vim.fn.getpos("'>")
-	return start_pos[2] > 0 and end_pos[2] > 0 and start_pos[2] <= end_pos[2]
+	}
+	}
 end
 
 function M.show_utils(opts)
 	opts = opts or {}
 
+	-- Lazy-load telescope dependencies
+	local pickers = require("telescope.pickers")
+	local finders = require("telescope.finders")
+	local conf = require("telescope.config").values
+	local actions = require("telescope.actions")
+	local action_state = require("telescope.actions.state")
+	local utils = require("nvim-utils.utils")
+
+	local utilities = get_utilities()
 	local available_utils = {}
-	local has_selection = has_visual_selection()
+	local has_selection = utils.has_selection()
 
 	for _, util in ipairs(utilities) do
 		if not util.requires_selection or has_selection then
@@ -76,7 +76,7 @@ function M.show_utils(opts)
 	end
 
 	if #available_utils == 0 then
-		vim.notify("No utilities available. Try selecting some text first.", vim.log.levels.WARN)
+		vim.notify("No utilities available. Please select text first.", vim.log.levels.WARN)
 		return
 	end
 

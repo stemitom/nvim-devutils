@@ -1,65 +1,48 @@
 local M = {}
-
-local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local utils = require("nvim-utils.utils")
 
 function M.encode(data)
-	return (
-		(data:gsub(".", function(x)
-			local r, b = "", x:byte()
-			for i = 8, 1, -1 do
-				r = r .. (b % 2 ^ i - b % 2 ^ (i - 1) > 0 and "1" or "0")
-			end
-			return r
-		end) .. "0000"):gsub("%d%d%d?%d?%d?%d?", function(x)
-			if #x < 6 then
-				return ""
-			end
-			local c = 0
-			for i = 1, 6 do
-				c = c + (x:sub(i, i) == "1" and 2 ^ (6 - i) or 0)
-			end
-			return b64chars:sub(c + 1, c + 1)
-		end) .. ({ "", "==", "=" })[#data % 3 + 1]
-	)
+	if not data or data == "" then
+		return ""
+	end
+	if type(data) ~= "string" then
+		error("base64.encode expects a string, got " .. type(data))
+	end
+	return vim.base64_encode(data)
 end
 
 function M.decode(data)
-	data = string.gsub(data, "[^" .. b64chars .. "=]", "")
-	return (
-		data:gsub(".", function(x)
-			if x == "=" then
-				return ""
-			end
-			local r, f = "", (b64chars:find(x) - 1)
-			for i = 6, 1, -1 do
-				r = r .. (f % 2 ^ i - f % 2 ^ (i - 1) > 0 and "1" or "0")
-			end
-			return r
-		end):gsub("%d%d%d?%d?%d?%d?%d?%d?", function(x)
-			if #x ~= 8 then
-				return ""
-			end
-			local c = 0
-			for i = 1, 8 do
-				c = c + (x:sub(i, i) == "1" and 2 ^ (8 - i) or 0)
-			end
-			return string.char(c)
-		end)
-	)
+	if not data or data == "" then
+		return ""
+	end
+	if type(data) ~= "string" then
+		error("base64.decode expects a string, got " .. type(data))
+	end
+	return vim.base64_decode(data)
 end
 
 function M.encode_selection()
-	local lines = vim.fn.getline("'<", "'>")
-	local text = table.concat(lines, "\n")
-	local encoded = M.encode(text)
+	local text = utils.get_selection()
+	if not text then
+		vim.notify("No selection found. Please select text first.", vim.log.levels.WARN)
+		return
+	end
 
-	-- Replace selection with encoded text
-	vim.api.nvim_buf_set_lines(0, vim.fn.line("'<") - 1, vim.fn.line("'>"), false, { encoded })
+	local ok, encoded = pcall(M.encode, text)
+	if not ok then
+		vim.notify("Failed to encode: " .. encoded, vim.log.levels.ERROR)
+		return
+	end
+
+	utils.replace_selection(encoded)
 end
 
 function M.decode_selection()
-	local lines = vim.fn.getline("'<", "'>")
-	local text = table.concat(lines, "\n")
+	local text = utils.get_selection()
+	if not text then
+		vim.notify("No selection found. Please select text first.", vim.log.levels.WARN)
+		return
+	end
 
 	local ok, decoded = pcall(M.decode, text)
 	if not ok then
@@ -67,8 +50,7 @@ function M.decode_selection()
 		return
 	end
 
-	local result_lines = vim.split(decoded, "\n")
-	vim.api.nvim_buf_set_lines(0, vim.fn.line("'<") - 1, vim.fn.line("'>"), false, result_lines)
+	utils.replace_selection(decoded)
 end
 
 return M
