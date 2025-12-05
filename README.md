@@ -9,6 +9,9 @@ A collection of developer utilities for Neovim. Quick access to encoding, decodi
 - **JSON Formatting**: Pretty-print and format JSON with proper indentation
 - **UUID Generation**: Generate and insert v4 UUIDs
 - **Ray.so Integration**: Create styled code snippet URLs for sharing
+- **JWT Decoder**: Decode and inspect JWT tokens with expiry info
+- **Timestamp Converter**: Convert between Unix timestamps and human-readable dates
+- **Case Conversion**: Convert between camelCase, snake_case, PascalCase, kebab-case, and more
 - **Telescope Integration**: Unified picker interface for all utilities
 - **Which-key Support**: Integration with which-key for keybinding help
 
@@ -53,6 +56,10 @@ require('nvim-utils').setup({
     rayso_generate = "<leader>ur",
     rayso_options = "<leader>uR",
     telescope_utils = "<leader>ut",
+    jwt_decode = "<leader>uJ",
+    timestamp_convert = "<leader>us",
+    timestamp_insert = "<leader>uS",
+    case_convert = "<leader>uc",
   },
   telescope = {
     enabled = true,
@@ -87,6 +94,10 @@ All utilities work on visual selections unless otherwise noted.
 | `<leader>ur` | `RaysoGenerate` | Generate ray.so snippet URL |
 | `<leader>uR` | `RaysoWithOptions` | Generate ray.so URL with custom theme/title |
 | `<leader>ut` | `UtilsPicker` | Open Telescope utils picker |
+| `<leader>uJ` | `JwtDecode` | Decode JWT token and show details |
+| `<leader>us` | `TimestampConvert` | Convert between timestamp and date |
+| `<leader>uS` | `TimestampInsert` | Insert Unix timestamp (normal mode) |
+| `<leader>uc` | `CaseConvert` | Convert text case (camel, snake, etc.) |
 
 ### Examples
 
@@ -133,6 +144,50 @@ Select code and press `<leader>ur`:
 
 Use `<leader>uR` to customize the theme and title before generating.
 
+#### JWT Decoding
+
+Select a JWT token and press `<leader>uJ`:
+
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+Shows a popup with decoded header, payload, signature, and expiry info.
+
+#### Timestamp Conversion
+
+Select a Unix timestamp and press `<leader>us`:
+
+```
+Before: 1704067200
+After:  2024-01-01 00:00:00
+```
+
+Or select a date to convert to timestamp:
+
+```
+Before: 2024-01-01 00:00:00
+After:  1704067200
+```
+
+Press `<leader>uS` in normal mode to insert the current Unix timestamp.
+
+#### Case Conversion
+
+Select text and press `<leader>uc` to pick a case format:
+
+```
+Input: hello_world
+
+Options:
+- camelCase: helloWorld
+- PascalCase: HelloWorld
+- snake_case: hello_world
+- SCREAMING_SNAKE: HELLO_WORLD
+- kebab-case: hello-world
+- Title Case: Hello World
+```
+
 #### Telescope Picker
 
 Press `<leader>ut` to open the Telescope utils picker. The picker shows available utilities based on context:
@@ -155,6 +210,11 @@ utils.url.encode(text)
 utils.url.decode(text)
 utils.uuid.generate()
 utils.rayso.generate_url(code, options)
+utils.jwt.parse(token)
+utils.timestamp.to_date(unix_timestamp)
+utils.timestamp.to_timestamp(date_string)
+utils.case.to_camel(text)
+utils.case.to_snake(text)
 ```
 
 ## API Reference
@@ -208,6 +268,42 @@ rayso.generate_url(code: string, opts?: table): string
 rayso.generate_from_selection(opts?: table)
 rayso.generate_with_options()  -- Interactive theme/title selection
 rayso.show_url_popup(url: string)  -- Display URL in a popup window
+```
+
+### jwt
+
+```lua
+jwt.parse(token: string): table|nil, string|nil
+-- Returns { header, payload, signature } or nil with error message
+
+jwt.decode_selection()  -- Shows decoded JWT in a popup
+```
+
+### timestamp
+
+```lua
+timestamp.to_date(unix_timestamp: number): string
+-- Converts Unix timestamp to "YYYY-MM-DD HH:MM:SS"
+
+timestamp.to_timestamp(date_str: string): number|nil, string|nil
+-- Parses "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS" to Unix timestamp
+
+timestamp.now(): number  -- Returns current Unix timestamp
+timestamp.insert_timestamp()  -- Inserts current timestamp at cursor
+timestamp.convert_selection()  -- Interactive conversion
+```
+
+### case
+
+```lua
+case.to_camel(str: string): string    -- "hello_world" -> "helloWorld"
+case.to_pascal(str: string): string   -- "hello_world" -> "HelloWorld"
+case.to_snake(str: string): string    -- "helloWorld" -> "hello_world"
+case.to_screaming(str: string): string -- "helloWorld" -> "HELLO_WORLD"
+case.to_kebab(str: string): string    -- "helloWorld" -> "hello-world"
+case.to_title(str: string): string    -- "hello_world" -> "Hello World"
+
+case.convert_selection()  -- Interactive picker for case conversion
 ```
 
 ## Error Handling
