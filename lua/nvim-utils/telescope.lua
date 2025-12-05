@@ -7,6 +7,9 @@ local function get_utilities()
 	local url = require("nvim-utils.url")
 	local uuid = require("nvim-utils.uuid")
 	local rayso = require("nvim-utils.rayso")
+	local jwt = require("nvim-utils.jwt")
+	local timestamp = require("nvim-utils.timestamp")
+	local case = require("nvim-utils.case")
 
 	return {
 	{
@@ -50,7 +53,31 @@ local function get_utilities()
 		desc = "Create code snippet with ray.so",
 		action = rayso.generate_from_selection,
 		requires_selection = true,
-	}
+	},
+	{
+		name = "JWT Decode",
+		desc = "Decode JWT token",
+		action = jwt.decode_selection,
+		requires_selection = true,
+	},
+	{
+		name = "Timestamp Convert",
+		desc = "Convert timestamp/date",
+		action = timestamp.convert_selection,
+		requires_selection = true,
+	},
+	{
+		name = "Insert Timestamp",
+		desc = "Insert Unix timestamp at cursor",
+		action = timestamp.insert_timestamp,
+		requires_selection = false,
+	},
+	{
+		name = "Case Convert",
+		desc = "Convert text case",
+		action = case.convert_selection,
+		requires_selection = true,
+	},
 	}
 end
 

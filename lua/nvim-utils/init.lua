@@ -5,6 +5,9 @@ local json = require("nvim-utils.json")
 local url = require("nvim-utils.url")
 local uuid = require("nvim-utils.uuid")
 local rayso = require("nvim-utils.rayso")
+local jwt = require("nvim-utils.jwt")
+local timestamp = require("nvim-utils.timestamp")
+local case = require("nvim-utils.case")
 
 local default_config = {
 	mappings = {
@@ -17,6 +20,10 @@ local default_config = {
 		rayso_generate = "<leader>ur",
 		rayso_options = "<leader>uR",
 		telescope_utils = "<leader>ut",
+		jwt_decode = "<leader>uJ",
+		timestamp_convert = "<leader>us",
+		timestamp_insert = "<leader>uS",
+		case_convert = "<leader>uc",
 	},
 	telescope = {
 		enabled = true,
@@ -36,6 +43,10 @@ local function validate_config(user_opts)
 		"rayso_generate",
 		"rayso_options",
 		"telescope_utils",
+		"jwt_decode",
+		"timestamp_convert",
+		"timestamp_insert",
+		"case_convert",
 	}
 	local valid_telescope_keys = { "enabled" }
 
@@ -136,6 +147,22 @@ function M.setup(opts)
 		rayso.generate_with_options()
 	end, { range = true, desc = "Generate ray.so with custom options" })
 
+	vim.api.nvim_create_user_command("JwtDecode", function()
+		jwt.decode_selection()
+	end, { range = true, desc = "Decode JWT from selection" })
+
+	vim.api.nvim_create_user_command("TimestampConvert", function()
+		timestamp.convert_selection()
+	end, { range = true, desc = "Convert timestamp/date" })
+
+	vim.api.nvim_create_user_command("TimestampInsert", function()
+		timestamp.insert_timestamp()
+	end, { desc = "Insert current Unix timestamp" })
+
+	vim.api.nvim_create_user_command("CaseConvert", function()
+		case.convert_selection()
+	end, { range = true, desc = "Convert case of selection" })
+
 	-- Setup telescope integration
 	if config.telescope.enabled then
 		local telescope_ok, _ = pcall(require, "telescope")
@@ -187,6 +214,22 @@ function M.setup(opts)
 		vim.keymap.set("v", config.mappings.rayso_options, rayso.generate_with_options, { desc = "Generate ray.so with options" })
 	end
 
+	if config.mappings.jwt_decode then
+		vim.keymap.set("v", config.mappings.jwt_decode, jwt.decode_selection, { desc = "Decode JWT" })
+	end
+
+	if config.mappings.timestamp_convert then
+		vim.keymap.set("v", config.mappings.timestamp_convert, timestamp.convert_selection, { desc = "Convert timestamp/date" })
+	end
+
+	if config.mappings.timestamp_insert then
+		vim.keymap.set("n", config.mappings.timestamp_insert, timestamp.insert_timestamp, { desc = "Insert timestamp" })
+	end
+
+	if config.mappings.case_convert then
+		vim.keymap.set("v", config.mappings.case_convert, case.convert_selection, { desc = "Convert case" })
+	end
+
 	-- Setup which-key integration if available
 	local which_key_ok, which_key = pcall(require, "which-key")
 	if which_key_ok then
@@ -201,6 +244,10 @@ function M.setup(opts)
 			{ "<leader>ur", desc = "Ray.so snippet" },
 			{ "<leader>uR", desc = "Ray.so with options" },
 			{ "<leader>ut", desc = "Utils picker" },
+			{ "<leader>uJ", desc = "JWT decode" },
+			{ "<leader>us", desc = "Timestamp convert" },
+			{ "<leader>uS", desc = "Insert timestamp" },
+			{ "<leader>uc", desc = "Case convert" },
 		})
 	end
 end
@@ -210,5 +257,8 @@ M.json = json
 M.url = url
 M.uuid = uuid
 M.rayso = rayso
+M.jwt = jwt
+M.timestamp = timestamp
+M.case = case
 
 return M
